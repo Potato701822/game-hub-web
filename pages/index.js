@@ -13,15 +13,11 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    if (supabase) fetchGames();
-  }, []);
+  useEffect(() => { if (supabase) fetchGames(); }, []);
 
   async function fetchGames() {
-    try {
-      const { data, error } = await supabase.from('games').select('*');
-      if (!error && data) setGames(data);
-    } catch (e) { console.log(e); }
+    const { data, error } = await supabase.from('games').select('*');
+    if (!error && data) setGames(data);
   }
 
   async function saveGame(e) {
@@ -37,14 +33,14 @@ export default function App() {
     if (!error) { setShowModal(false); fetchGames(); }
   }
 
-  if (!supabase) return <div className="bg-black h-screen text-white flex items-center justify-center">A configurar chaves do Supabase...</div>;
+  if (!supabase) return <div className="bg-black h-screen text-white flex items-center justify-center">Faltam as chaves do Supabase na Vercel.</div>;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0c] text-white flex font-sans">
+    <div className="min-h-screen bg-[#0a0a0c] text-white flex">
       <nav className="w-20 bg-[#0f0f12] border-r border-white/5 flex flex-col items-center py-8 gap-8 fixed h-full z-50">
         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center"><Gamepad2 size={28} /></div>
-        <button onClick={() => setView('launcher')} className="text-gray-500 hover:text-white"><LayoutDashboard size={24} /></button>
-        <button onClick={() => setView('admin')} className="text-gray-500 hover:text-white"><Settings size={24} /></button>
+        <button onClick={() => setView('launcher')} className={`p-3 ${view === 'launcher' ? 'text-blue-400' : 'text-gray-600'}`}><LayoutDashboard size={24} /></button>
+        <button onClick={() => setView('admin')} className={`p-3 ${view === 'admin' ? 'text-purple-400' : 'text-gray-600'}`}><Settings size={24} /></button>
         <button onClick={() => setIsAdmin(!isAdmin)} className={`mt-auto ${isAdmin ? 'text-green-400' : 'text-gray-700'}`}><CheckCircle2 size={24} /></button>
       </nav>
 
@@ -57,11 +53,11 @@ export default function App() {
         </header>
 
         {view === 'launcher' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {games.map(game => (
               <div key={game.id} onClick={() => { setSelectedGame(game); setView('details'); }} className="bg-[#16161d] rounded-2xl overflow-hidden border border-white/5 cursor-pointer hover:border-blue-500 transition-all">
-                <img src={game.image || 'https://via.placeholder.com/400'} className="w-full h-48 object-cover" alt="" />
-                <div className="p-4 font-bold truncate">{game.title}</div>
+                <img src={game.image || 'https://via.placeholder.com/400'} className="w-full h-48 object-cover" />
+                <div className="p-4 font-bold">{game.title}</div>
               </div>
             ))}
           </div>
@@ -70,12 +66,12 @@ export default function App() {
         {view === 'details' && selectedGame && (
           <div className="max-w-4xl">
             <button onClick={() => setView('launcher')} className="flex items-center gap-2 text-gray-400 mb-6"><ArrowLeft size={20} /> Voltar</button>
-            <div className="flex flex-col md:flex-row gap-10 bg-[#16161d] p-8 rounded-3xl border border-white/5 shadow-2xl">
-              <img src={selectedGame.image} className="w-full md:w-72 rounded-2xl" alt="" />
+            <div className="flex flex-col md:flex-row gap-10 bg-[#16161d] p-8 rounded-3xl">
+              <img src={selectedGame.image} className="w-full md:w-72 rounded-2xl" />
               <div className="flex-1">
-                <h2 className="text-5xl font-black mb-4 leading-none">{selectedGame.title}</h2>
-                <p className="text-gray-400 text-lg mb-8 leading-relaxed">{selectedGame.description}</p>
-                <a href={selectedGame.install_url} target="_blank" rel="noreferrer" className="inline-block bg-blue-600 px-10 py-4 rounded-xl font-bold text-xl hover:bg-blue-700 transition">DESCARREGAR JOGO</a>
+                <h2 className="text-5xl font-black mb-4">{selectedGame.title}</h2>
+                <p className="text-gray-400 mb-8">{selectedGame.description}</p>
+                <a href={selectedGame.install_url} target="_blank" rel="noreferrer" className="bg-blue-600 px-8 py-3 rounded-xl font-bold inline-block">BAIXAR</a>
               </div>
             </div>
           </div>
@@ -83,14 +79,15 @@ export default function App() {
       </main>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-[100]">
           <form onSubmit={saveGame} className="bg-[#1c1c24] p-8 rounded-3xl w-full max-w-lg space-y-4 border border-white/10">
-            <div className="flex justify-between items-center text-white"><h2 className="text-2xl font-bold">Novo Jogo</h2><button type="button" onClick={() => setShowModal(false)}><X /></button></div>
-            <input name="title" placeholder="Nome" className="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-white outline-none" required />
-            <textarea name="description" placeholder="Descrição" className="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-white h-24 outline-none" />
-            <input name="image" placeholder="URL da Capa" className="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-white outline-none" />
-            <input name="installUrl" placeholder="URL de Download" className="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-white outline-none" required />
-            <button type="submit" className="w-full bg-blue-600 py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition text-white">SALVAR JOGO</button>
+            <h2 className="text-2xl font-bold">Novo Jogo</h2>
+            <input name="title" placeholder="Nome" className="w-full bg-white/5 p-3 rounded-xl text-white" required />
+            <textarea name="description" placeholder="Descrição" className="w-full bg-white/5 p-3 rounded-xl text-white h-24" />
+            <input name="image" placeholder="URL da Capa" className="w-full bg-white/5 p-3 rounded-xl text-white" />
+            <input name="installUrl" placeholder="Link Download" className="w-full bg-white/5 p-3 rounded-xl text-white" required />
+            <button type="submit" className="w-full bg-blue-600 py-4 rounded-xl font-bold">SALVAR</button>
+            <button type="button" onClick={() => setShowModal(false)} className="w-full text-gray-400">Cancelar</button>
           </form>
         </div>
       )}
