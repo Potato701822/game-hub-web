@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Head from 'next/head';
 import Sidebar from '../components/Sidebar';
 import GameCard from '../components/GameCard';
 import InstallationView from '../views/InstallationView';
@@ -11,7 +12,6 @@ export default function App() {
   const [selectedGame, setSelectedGame] = useState(null);
   const [dbGames, setDbGames] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [downloads, setDownloads] = useState([]);
 
   useEffect(() => {
     async function fetchGames() {
@@ -24,27 +24,28 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-black text-[#888] font-sans overflow-hidden">
-      <Sidebar activeView={view} setView={setView} downloadCount={downloads.length} />
+      <Head>
+        <title>KRAKEN FGSTUDIOS</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+      </Head>
+      
+      <Sidebar activeView={view} setView={setView} downloadCount={0} />
 
-      <main className="flex-1 ml-64 flex flex-col relative h-full">
-        
+      <main className="flex-1 ml-72 flex flex-col relative h-full bg-[#050505] overflow-y-auto">
         {view === 'inicio' && (
-          <div className="p-12 space-y-12 overflow-y-auto">
-            <h1 className="text-6xl font-black italic text-white uppercase tracking-tighter">Início</h1>
-            <div className="grid grid-cols-3 gap-8">
-              {dbGames.slice(0, 3).map(game => (
-                <GameCard key={game.id} game={game} onClick={(g) => { setSelectedGame(g); setView('install_details'); }} />
+          <div className="p-16 space-y-12 animate-in fade-in duration-700">
+            <h1 className="text-[11px] font-black text-white uppercase tracking-[0.4em] opacity-40">Destaques</h1>
+            <div className="grid grid-cols-3 gap-10">
+              {dbGames.map(game => (
+                <GameCard key={game.id} game={game} onClick={(g) => { setSelectedGame(g); setView('install'); }} />
               ))}
             </div>
           </div>
         )}
 
-        {view === 'install_details' && selectedGame && (
+        {view === 'install' && selectedGame && (
           <InstallationView game={selectedGame} onBack={() => setView('inicio')} />
         )}
-
-        {/* Adicione outras abas conforme precisar aqui */}
-
       </main>
     </div>
   );
