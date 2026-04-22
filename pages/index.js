@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gamepad2, Settings, LayoutDashboard, CheckCircle2, Download, ArrowLeft, X, Plus, Info, ShieldCheck } from 'lucide-react';
+import { Gamepad2, Settings, LayoutDashboard, ShieldCheck, Download, ArrowLeft, X, Plus, Info, Globe, PackagePlus } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -18,117 +18,120 @@ export default function App() {
 
   async function fetchGames() {
     setLoading(true);
-    const { data, error } = await supabase.from('games').select('*');
-    if (!error && data) setGames(data);
+    try {
+      const { data, error } = await supabase.from('games').select('*');
+      if (!error && data) setGames(data);
+    } catch (e) { console.error("Erro ao carregar jogos:", e); }
     setLoading(false);
   }
 
   async function saveGame(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
+    
+    // Criamos o objeto base
     const gameData = {
       title: formData.get('title'),
       description: formData.get('description'),
       image: formData.get('image'),
       install_url: formData.get('installUrl'),
     };
+
+    // Adicionamos os novos campos apenas se eles tiverem valor (para evitar erros se as colunas não existirem ainda)
+    const dlc = formData.get('dlcUrl');
+    const fix = formData.get('onlineFixUrl');
+    if (dlc) gameData.dlc_url = dlc;
+    if (fix) gameData.online_fix_url = fix;
+
     const { error } = await supabase.from('games').insert([gameData]);
     if (!error) { setShowModal(false); fetchGames(); }
+    else { alert("Nota: Se der erro aqui, é porque ainda precisas adicionar as colunas no Supabase."); }
   }
 
-  if (!supabase) return <div className="bg-black h-screen text-white flex items-center justify-center font-sans">Configurações do Supabase ausentes na Vercel.</div>;
+  if (!supabase) return <div className="bg-black h-screen text-white flex items-center justify-center font-sans uppercase tracking-widest text-xs opacity-50">Configurações pendentes...</div>;
 
   return (
     <div className="min-h-screen bg-[#050507] text-white flex font-sans selection:bg-blue-500/30">
       <script src="https://cdn.tailwindcss.com"></script>
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .game-card:hover { transform: translateY(-10px); border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #050507; }
+        .glass { background: rgba(255, 255, 255, 0.01); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .game-card:hover { transform: translateY(-8px); border-color: rgba(59, 130, 246, 0.3); }
+        .btn-gradient { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); }
+        .animate-fade-up { animation: fadeUp 0.6s ease-out forwards; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       `}} />
 
-      {/* Barra Lateral */}
-      <nav className="w-24 bg-[#08080a] border-r border-white/5 flex flex-col items-center py-10 gap-10 fixed h-full z-50">
-        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg mb-4">
-          <Gamepad2 size={30} strokeWidth={2.5} />
+      {/* Navegação Lateral */}
+      <nav className="w-20 bg-[#08080a] border-r border-white/5 flex flex-col items-center py-8 gap-10 fixed h-full z-50">
+        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20">
+          <Gamepad2 size={24} />
         </div>
-        
-        <div className="flex flex-col gap-6">
-          <button onClick={() => setView('launcher')} className={`p-4 rounded-2xl transition-all ${view === 'launcher' ? 'bg-blue-600/10 text-blue-400' : 'text-gray-600'}`} title="Biblioteca">
-            <LayoutDashboard size={26} />
-          </button>
-          
-          <button onClick={() => setView('admin')} className={`p-4 rounded-2xl transition-all ${view === 'admin' ? 'bg-purple-600/10 text-purple-400' : 'text-gray-600'}`} title="Configurações">
-            <Settings size={26} />
-          </button>
+        <div className="flex flex-col gap-8">
+          <button onClick={() => setView('launcher')} className={`p-2 transition-colors ${view === 'launcher' ? 'text-blue-500' : 'text-gray-700 hover:text-gray-400'}`}><LayoutDashboard size={24} /></button>
+          <button onClick={() => setView('admin')} className={`p-2 transition-colors ${view === 'admin' ? 'text-purple-500' : 'text-gray-700 hover:text-gray-400'}`}><Settings size={24} /></button>
         </div>
-
-        {/* BOTÃO PARA ATIVAR O ADMIN (CLIQUE AQUI PARA APARECER O BOTÃO DE ADICIONAR) */}
-        <button 
-          onClick={() => { setIsAdmin(!isAdmin); if(!isAdmin) setView('admin'); }} 
-          className={`mt-auto p-4 rounded-2xl transition-all duration-500 ${isAdmin ? 'text-green-500 bg-green-500/10' : 'text-gray-800'}`}
-          title={isAdmin ? "Modo Admin Ativo" : "Ativar Modo Admin"}
-        >
-          <ShieldCheck size={26} />
-        </button>
+        <button onClick={() => { setIsAdmin(!isAdmin); if(!isAdmin) setView('admin'); }} className={`mt-auto p-2 transition-all ${isAdmin ? 'text-green-500' : 'text-gray-800'}`}><ShieldCheck size={24} /></button>
       </nav>
 
-      {/* Área Principal */}
-      <main className="flex-1 ml-24 p-12 max-w-7xl mx-auto w-full">
-        <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-16">
+      <main className="flex-1 ml-20 p-8 md:p-16">
+        <header className="flex justify-between items-end mb-16 max-w-6xl mx-auto">
           <div>
-            <h2 className="text-blue-500 font-bold tracking-[0.3em] text-[10px] mb-3 uppercase opacity-80">Painel de Controle</h2>
-            <h1 className="text-6xl font-extrabold tracking-tighter leading-none">
-              {view === 'launcher' ? 'Biblioteca' : 'Admin'}
-            </h1>
+            <p className="text-blue-500 text-[10px] font-bold tracking-[0.4em] uppercase mb-2">Game Hub</p>
+            <h1 className="text-5xl font-extrabold tracking-tight italic uppercase">{view === 'launcher' ? 'Explorar' : 'Gestão'}</h1>
           </div>
-          
-          {/* O BOTÃO SÓ APARECE SE "isAdmin" FOR TRUE E ESTIVER NA TELA "admin" */}
           {view === 'admin' && isAdmin && (
-            <button onClick={() => setShowModal(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-blue-600/20 active:scale-95 animate-in zoom-in duration-300">
-              <Plus size={22} strokeWidth={3} /> NOVO JOGO
+            <button onClick={() => setShowModal(true)} className="btn-gradient px-8 py-4 rounded-2xl font-bold flex items-center gap-2 hover:scale-105 transition-transform active:scale-95 shadow-xl shadow-blue-900/20">
+              <Plus size={20} /> NOVO TÍTULO
             </button>
           )}
         </header>
 
         {loading ? (
-          <div className="h-[50vh] flex items-center justify-center"><div className="w-16 h-16 border-t-2 border-blue-500 rounded-full animate-spin"></div></div>
+          <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>
         ) : (
-          <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="max-w-6xl mx-auto">
             {view === 'launcher' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 animate-fade-up">
                 {games.map(game => (
-                  <div key={game.id} onClick={() => { setSelectedGame(game); setView('details'); }} className="game-card glass rounded-[2.5rem] overflow-hidden cursor-pointer transition-all duration-500 group relative">
-                    <div className="relative h-64 overflow-hidden">
-                      <img src={game.image || 'https://via.placeholder.com/400x600'} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" alt="" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#050507] via-transparent to-transparent opacity-80 transition-opacity"></div>
+                  <div key={game.id} onClick={() => { setSelectedGame(game); setView('details'); }} className="game-card glass rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-300">
+                    <div className="h-60 overflow-hidden relative">
+                      <img src={game.image || 'https://via.placeholder.com/400x600'} className="w-full h-full object-cover" alt="" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#050507] to-transparent opacity-60"></div>
                     </div>
-                    <div className="p-8">
-                      <div className="flex items-center gap-3 mb-2"><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div><span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Disponível</span></div>
-                      <h3 className="font-extrabold text-2xl truncate group-hover:text-blue-400 transition-colors tracking-tight">{game.title}</h3>
+                    <div className="p-6">
+                      <h3 className="font-bold text-lg truncate tracking-tight">{game.title}</h3>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {view === 'admin' && !isAdmin && (
-              <div className="text-center py-20 bg-white/5 rounded-[3rem] border border-dashed border-white/10">
-                <ShieldCheck size={48} className="mx-auto mb-4 text-gray-600" />
-                <p className="text-gray-400">Ative o ícone de escudo na barra lateral para gerenciar os jogos.</p>
-              </div>
-            )}
-
             {view === 'details' && selectedGame && (
-              <div className="animate-in fade-in zoom-in-95 duration-500">
-                <button onClick={() => setView('launcher')} className="flex items-center gap-3 text-gray-500 mb-10 hover:text-white transition group bg-white/5 px-6 py-3 rounded-full w-fit"><ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Voltar</button>
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
-                  <div className="lg:col-span-5"><div className="relative rounded-[3.5rem] overflow-hidden shadow-2xl ring-1 ring-white/10"><img src={selectedGame.image} className="w-full object-cover aspect-[4/5]" alt="" /></div></div>
-                  <div className="lg:col-span-7">
-                    <h2 className="text-8xl font-black mb-8 tracking-tighter leading-[0.85]">{selectedGame.title}</h2>
-                    <p className="text-gray-400 text-xl mb-12 leading-relaxed max-w-xl font-medium">{selectedGame.description || 'Sem descrição.'}</p>
-                    <a href={selectedGame.install_url} target="_blank" rel="noreferrer" className="bg-blue-600 text-white hover:bg-blue-500 px-14 py-6 rounded-[2rem] font-black text-2xl transition-all flex items-center gap-4 shadow-2xl active:scale-95 group inline-flex"><Download size={28} /> BAIXAR JOGO</a>
+              <div className="animate-fade-up">
+                <button onClick={() => setView('launcher')} className="flex items-center gap-2 text-gray-500 mb-10 hover:text-white transition group"><ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> BIBLIOTECA</button>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+                  <div className="lg:col-span-4">
+                    <img src={selectedGame.image} className="w-full rounded-[2.5rem] shadow-2xl border border-white/5" alt="" />
+                  </div>
+                  <div className="lg:col-span-8">
+                    <h2 className="text-7xl font-black mb-6 tracking-tighter leading-none italic uppercase">{selectedGame.title}</h2>
+                    <p className="text-gray-400 text-lg mb-10 leading-relaxed font-medium">{selectedGame.description || 'Sem descrição.'}</p>
+                    
+                    <div className="flex flex-col gap-4 max-w-sm">
+                      <a href={selectedGame.install_url} target="_blank" rel="noreferrer" className="bg-white text-black px-10 py-5 rounded-2xl font-black text-center hover:bg-blue-600 hover:text-white transition-all shadow-xl">BAIXAR AGORA</a>
+                      
+                      {/* Botões Opcionais (só aparecem se tiverem link no banco) */}
+                      <div className="flex gap-4">
+                        {selectedGame.dlc_url && (
+                          <a href={selectedGame.dlc_url} target="_blank" rel="noreferrer" className="flex-1 bg-white/5 border border-white/10 p-4 rounded-2xl font-bold text-center text-sm hover:bg-white/10 transition-colors flex items-center justify-center gap-2"><PackagePlus size={16}/> DLC</a>
+                        )}
+                        {selectedGame.online_fix_url && (
+                          <a href={selectedGame.online_fix_url} target="_blank" rel="noreferrer" className="flex-1 bg-white/5 border border-white/10 p-4 rounded-2xl font-bold text-center text-sm hover:bg-white/10 transition-colors flex items-center justify-center gap-2"><Globe size={16}/> ONLINE</a>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -137,23 +140,28 @@ export default function App() {
         )}
       </main>
 
-      {/* Modal Novo Jogo */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-6 z-[100] backdrop-blur-2xl animate-in fade-in duration-300">
-          <form onSubmit={saveGame} className="bg-[#0c0c0f] p-12 rounded-[3.5rem] w-full max-w-2xl space-y-8 border border-white/10 shadow-3xl">
-            <div className="flex justify-between items-start">
-              <div><h2 className="text-4xl font-black tracking-tight mb-2">Novo Título</h2><p className="text-gray-500 font-medium">Cadastre um jogo na base de dados.</p></div>
-              <button type="button" onClick={() => setShowModal(false)} className="w-12 h-12 flex items-center justify-center hover:bg-white/5 rounded-full text-gray-400"><X size={28} /></button>
+        <div className="fixed inset-0 bg-black/95 flex items-center justify-center p-6 z-[100] backdrop-blur-xl animate-fade-up">
+          <form onSubmit={saveGame} className="bg-[#0c0c0f] p-10 rounded-[2.5rem] w-full max-w-2xl border border-white/10 space-y-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-3xl font-black uppercase italic">Novo Jogo</h2>
+              <button type="button" onClick={() => setShowModal(false)} className="text-gray-500 hover:text-white"><X size={24} /></button>
             </div>
-            <div className="space-y-5">
-              <input name="title" placeholder="Nome do Jogo" className="w-full bg-white/5 border border-white/5 p-5 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/50" required />
-              <textarea name="description" placeholder="Resumo..." className="w-full bg-white/5 border border-white/5 p-5 rounded-2xl text-white h-32 outline-none focus:ring-2 focus:ring-blue-500/50 resize-none" />
-              <div className="grid grid-cols-2 gap-5">
-                <input name="image" placeholder="Link da Capa" className="w-full bg-white/5 border border-white/5 p-5 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/50" />
-                <input name="installUrl" placeholder="Link de Download" className="w-full bg-white/5 border border-white/5 p-5 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/50" required />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input name="title" placeholder="Nome" className="md:col-span-2 w-full bg-white/5 p-4 rounded-xl border border-white/5 outline-none focus:border-blue-500 transition-colors" required />
+              <textarea name="description" placeholder="Resumo" className="md:col-span-2 w-full bg-white/5 p-4 rounded-xl border border-white/5 h-24 outline-none focus:border-blue-500 transition-colors resize-none" />
+              <input name="image" placeholder="URL da Capa" className="w-full bg-white/5 p-4 rounded-xl border border-white/5 outline-none focus:border-blue-500" />
+              <input name="installUrl" placeholder="Link Download" className="w-full bg-white/5 p-4 rounded-xl border border-white/5 outline-none focus:border-blue-500" required />
+              
+              <div className="md:col-span-2 p-4 bg-blue-500/5 rounded-xl border border-blue-500/10">
+                <p className="text-[10px] font-bold text-blue-500 uppercase mb-3">Extras (Ligar colunas no Supabase depois)</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input name="dlcUrl" placeholder="Link DLC" className="w-full bg-white/5 p-4 rounded-xl border border-white/5 text-xs outline-none focus:border-purple-500" />
+                  <input name="onlineFixUrl" placeholder="Link Online Fix" className="w-full bg-white/5 p-4 rounded-xl border border-white/5 text-xs outline-none focus:border-green-500" />
+                </div>
               </div>
             </div>
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 py-6 rounded-[2rem] font-black text-xl transition-all shadow-xl mt-4 uppercase">Adicionar à Biblioteca</button>
+            <button type="submit" className="w-full btn-gradient py-5 rounded-2xl font-black text-lg shadow-lg uppercase tracking-widest">Publicar</button>
           </form>
         </div>
       )}
